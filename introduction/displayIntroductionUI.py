@@ -59,31 +59,18 @@ def run_intro_sequence():
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     screen_width, screen_height = screen.get_size()
     pygame.display.set_caption("Confession Booth Introduction")
-    intro_durations = [20, 18, 30]
+    intro_durations = [20, 18, 30]  # durations in seconds
+    audio_path = "introductionAudio.mp3"
+
+    # Play the audio file once
+    pygame.mixer.music.load(audio_path)
+    pygame.mixer.music.play()
 
     for i in range (len(INTRO_TEXT_FILES)):
         with open(INTRO_TEXT_FILES[i], "r") as f:
             content = f.read()
         display_text(content, screen, screen_width, screen_height)
         time.sleep(intro_durations[i])
-        
-    # for filepath in INTRO_TEXT_FILES:
-    #     with open(filepath, "r") as f:
-    #         content = f.read()
-
-    #     display_text(content, screen, screen_width, screen_height)
-
-        # Wait for 6 seconds or any keypress
-        # clock = pygame.time.Clock()
-        # start_time = pygame.time.get_ticks()
-        # while pygame.time.get_ticks() - start_time < 6000:
-        #     for event in pygame.event.get():
-        #         if event.type == pygame.KEYDOWN:
-        #             break
-        #     else:
-        #         clock.tick(60)
-        #         continue
-        #     break
 
     pygame.quit()
 
