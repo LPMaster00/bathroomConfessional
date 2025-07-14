@@ -11,7 +11,7 @@ def display_text(filepath, duration=10):
     screen.fill((0, 0, 0))
 
     # Function to dynamically calculate best font size to fit text on screen
-    def get_best_font_size(text, max_width, max_height, font_name="Georgia"):
+    def get_best_font_size(text, max_width, max_height, font_name="Apple Chancery"):
         font_size = 80
         while font_size > 10:
             font = pygame.font.SysFont(font_name, font_size)
