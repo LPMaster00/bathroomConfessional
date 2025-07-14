@@ -59,7 +59,7 @@ def run_intro_sequence():
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     screen_width, screen_height = screen.get_size()
     pygame.display.set_caption("Confession Booth Introduction")
-    intro_durations = [2, 2, 2]
+    intro_durations = [20, 18, 30]
 
     for i in range (len(INTRO_TEXT_FILES)):
         with open(INTRO_TEXT_FILES[i], "r") as f:
