@@ -2,20 +2,20 @@ import os
 import random
 import time
 import pygame
-import RPi.GPIO as GPIO
 import subprocess
 from mutagen.mp3 import MP3
-from gpiozero import MotionSensor
+from gpiozero import MotionSensor, Button
+from signal import pause
 
 # === Configuration ===
 BUTTON_PIN = 2
 MOTION_PIN = 4
 INTRO_TEXT_FILES = [
-    "introduction/introductionText1.txt",
-    "introduction/introductionText2.txt",
-    "introduction/introductionText3.txt",
+    "/home/username/bathroomConfessional/introduction/introductionText1.txt",
+    "/home/username/bathroomConfessional/introduction/introductionText2.txt",
+    "/home/username/bathroomConfessional/introduction/introductionText3.txt",
 ]
-INTRO_AUDIO_PATH = "introduction/introductionAudio.mp3"
+INTRO_AUDIO_PATH = "/home/username/bathroomConfessional/introduction/introductionAudio.mp3"
 INTRO_DURATIONS = [20, 18]  # Only for first two slides
 PENANCE_ROOT = "penences"
 FONT_NAME = "Apple Chancery"
@@ -88,20 +88,27 @@ pir.wait_for_motion()
 print("Motion detected. Starting...")
 
 # === Main Program ===
+button = Button(BUTTON_PIN)
+
 pygame.init()
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_width, screen_height = screen.get_size()
 pygame.font.init()
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # Start lights
-lights_process = subprocess.Popen(["sudo", "python3", "lights.py", "--clear"])
+lights_process = subprocess.Popen(["sudo", "python3", "/home/username/bathroomConfessional/lights.py", "--clear"])
 
 # Play intro audio
-pygame.mixer.init()
-pygame.mixer.music.load(INTRO_AUDIO_PATH)
-pygame.mixer.music.play()
+try:
+    pygame.mixer.init()
+except pygame.error as e:
+    print(f"Error initializing mixer: {e}")
+else:
+    try:
+        pygame.mixer.music.load(INTRO_AUDIO_PATH)
+        pygame.mixer.music.play()
+    except Exception as e:
+        print(f"Error playing intro audio: {e}")
 
 # Show intro slides
 for i in range(len(INTRO_TEXT_FILES) - 1):
@@ -115,7 +122,7 @@ with open(INTRO_TEXT_FILES[-1], "r") as f:
     content = f.read()
 display_text(content, screen, screen_width, screen_height)
 print("Waiting for button press...")
-GPIO.wait_for_edge(BUTTON_PIN, GPIO.FALLING)
+button.wait_for_press()
 
 # Show loading message
 screen.fill(BG_COLOR)
@@ -129,10 +136,15 @@ time.sleep(2)
 # Select penance
 penance_txt, penance_mp3 = select_random_penance()
 if penance_mp3:
-    pygame.mixer.music.load(penance_mp3)
-    pygame.mixer.music.play()
-    duration = get_mp3_duration(penance_mp3)
+    try:
+        pygame.mixer.music.load(penance_mp3)
+        pygame.mixer.music.play()
+        duration = get_mp3_duration(penance_mp3)
+    except Exception as e:
+        print(f"⚠️ Error playing penance audio: {e}")
+        duration = 60
 else:
+    print("⚠️ No penance audio found. Skipping playback.")
     duration = 60
 
 # Display penance
@@ -142,18 +154,18 @@ display_text(content, screen, screen_width, screen_height)
 
 # Wait for duration
 start = time.time()
-while time.time() - start < duration:
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            pygame.quit()
-            GPIO.cleanup()
-            subprocess.run(["sudo", "kill", "-TERM", str(lights_process.pid)])
-            exit()
-    time.sleep(0.1)
+try:
+    while time.time() - start < duration:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                raise KeyboardInterrupt
+        time.sleep(0.1)
+except KeyboardInterrupt:
+    pass
 
 # Cleanup
 pygame.quit()
-pygame.mixer.music.stop()
-GPIO.cleanup()
-subprocess.run(["sudo", "kill", "-TERM", str(lights_process.pid)])
+if pygame.mixer.get_init():
+    pygame.mixer.music.stop()
 
+subprocess.run(["sudo", "kill", "-TERM", str(lights_process.pid)])
